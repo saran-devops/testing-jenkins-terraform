@@ -1,5 +1,11 @@
 pipeline {
-    agent any
+     
+   environment {
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+    }
+ 
+   agent any
     
     tools {
         terraform 'terraform'
@@ -7,7 +13,7 @@ pipeline {
     stages {
         stage ("checkout from GIT") {
             steps {
-                git branch: 'master', credentialsId: 'cde06f21-9ae7-4081-a549-f7bdb515dc6f', url: 'https://github.com/saran-devops/testing-jenkins-terraform.git'
+             git branch: 'master', credentialsId: 'saranlang', url: 'https://github.com/saran-devops/testing-jenkins-terraform.git'
             }
         }
         stage ("terraform init") {

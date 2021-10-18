@@ -3,14 +3,26 @@ provider "aws" {
   region  = "us-east-1"
 }
 
-variable "ingressrules" {
-  type    = list(number)
-  default = [80, 443, 22]
+resource "aws_default_vpc" "default" {
+
+}
+
+
+resource "aws_s3_bucket" "my-s3-bucket" {
+  bucket_prefix = var.bucket_prefix
+  acl           = var.acl
+
+  versioning {
+    enabled = var.versioning
+  }
+
+  tags = var.tags
 }
 
 resource "aws_security_group" "web_traffic" {
   name        = "Allow web traffic"
   description = "Allow ssh and standard http/https ports inbound and everything outbound"
+  vpc_id      = aws_default_vpc.default.id
 
   dynamic "ingress" {
     iterator = port
@@ -35,35 +47,22 @@ resource "aws_security_group" "web_traffic" {
   }
 }
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"]
-}
-
 resource "aws_instance" "jenkins" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro"
-  security_groups = [aws_security_group.web_traffic.name]
-  key_name        = "ubuntu-tf"
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.web_traffic.id]
+  subnet_id              = tolist(data.aws_subnet_ids.default_subnets.ids)[0]
+  key_name               = "ubuntu-tf"
 
- provisioner "remote-exec" {
+  provisioner "remote-exec" {
     inline = [
       "wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | sudo apt-key add -",
       "sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'",
-      "sudo apt update -qq",
-      "sudo apt install -y default-jre",
-      "sudo apt install -y jenkins",
+      "sudo apt get update",
+      "sudo apt-get update && apt-get upgrade",
+      "sudo apt-get install -y default-jdk",
+      "sudo apt-get update",
+      "sudo apt-get install -y jenkins",
       "sudo systemctl start jenkins",
       "sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080",
       "sudo sh -c \"iptables-save > /etc/iptables.rules\"",
@@ -71,6 +70,8 @@ resource "aws_instance" "jenkins" {
       "echo iptables-persistent iptables-persistent/autosave_v6 boolean true | sudo debconf-set-selections",
       "sudo apt-get -y install iptables-persistent",
       "sudo ufw allow 8080",
+      "java --version",
+      "python --version"
     ]
   }
 

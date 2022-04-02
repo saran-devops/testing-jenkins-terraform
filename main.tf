@@ -62,9 +62,13 @@ resource "aws_instance" "jenkins" {
       "sudo apt-get update",
       "sudo apt update",
       "sudo apt install -y openjdk-11-jdk",
+      "sudo apt update && sudo apt-get install -y python3-pip",
       "sudo apt update",
       "sudo apt install -y jenkins",
       "sudo systemctl start jenkins",
+      "sudo pip3 install awscli",
+      "sudo pip3 install ansible",
+      "sudo pip3 install boto boto3",
       "sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8080",
       "sudo sh -c \"iptables-save > /etc/iptables.rules\"",
       "echo iptables-persistent iptables-persistent/autosave_v4 boolean true | sudo debconf-set-selections",
@@ -72,7 +76,11 @@ resource "aws_instance" "jenkins" {
       "sudo apt-get -y install iptables-persistent",
       "sudo ufw allow 8080",
       "java --version",
-      "python3 --version"
+      "aws --version",
+      "pip --version",
+      "python3 --version",
+      "ansible --version",
+      "python3 -m awscli --version"
     ]
   }
 
